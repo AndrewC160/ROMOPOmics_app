@@ -1,6 +1,5 @@
 library(tidyverse)
 library(ROMOPOmics)
-library(data.table)
 library(DT)
 library(knitr)
 library(kableExtra)
@@ -11,31 +10,26 @@ library(DBI)
 library(GGally) #https://briatte.github.io/ggnet/
 library(network)
 library(sna)
+library(data.table)
 
 dirs          <- list()
 dirs$base     <- file.path("/projects/andrew/ROMOPOmics_app")
-#dirs$base     <- file.path("..")
 dirs$app      <- file.path(dirs$base,"app")
 dirs$src      <- file.path(dirs$base,"src")
 dirs$data     <- file.path(dirs$base,"data")
 dirs$masks    <- file.path(dirs$base,"masks")
-dirs$database <- file.path(dirs$data,"database")
-dirs$dm_file  <- file.path(dirs$database,"OMOP_CDM_v6_0_custom.csv")
-dirs$db_file  <- file.path(dirs$database,"sqlDB.sqlite")
-
+dirs$db_file  <- file.path(dirs$data,"sqlDB.sqlite")
+renderDataTable <- DT::renderDataTable
+dataTableOutput <- DT::dataTableOutput
+as_tibble       <- tibble::as_tibble
 #Source all functions in the src directory.
 invisible(lapply(Sys.glob(file.path(dirs$src,"*.R")),source))
 
 #Load data model, and make sure all names are unique.
-dm      <- loadDataModel(as_table_list =FALSE,master_table_file=dirs$dm_file)
+dm      <- loadDataModel()
 
 #Load masks.
 msks    <- loadModelMasks(data_model = dm,mask_file_directory = dirs$masks)
-
-#Create separate input directories for each mask.
-dirs$inputs       <- as.list(paste(dirs$data,names(msks),sep="/"))
-names(dirs$inputs)<- names(msks)
-invisible(lapply(dirs$input, function(x) dir.create))
 
 #Append aliases for each mask to data model.
 for(i in 1:length(msks)){
@@ -56,8 +50,10 @@ if(file.exists(dirs$db_file)){
   db  <- DBI::dbConnect(RSQLite::SQLite(), dirs$db_file)
 }else{
   #Read existing data files into comprehensive input tables.
-  input_files       <- lapply(names(msks), function(x) Sys.glob(paste0(dirs$inputs[[x]],"/*\\.*sv")))
-  names(input_files)<- names(msks)
+  #input_files       <- lapply(names(msks), function(x) Sys.glob(paste0(dirs$inputs[[x]],"/*\\.*sv")))
+  #Find input files.
+  input_files <- Sys.glob(paste0(dirs$data,"/*\\.[tc]sv"))
+  names(input_files)<- gsub("\\.[tc]sv","",basename(input_files))
   {
     st_tm <- Sys.time()
   input_tables      <- list()
@@ -78,9 +74,6 @@ if(file.exists(dirs$db_file)){
 
 db_tabs       <- getDBTables(db,find_key = FALSE)
 db_tabs       <- db_tabs[!grepl("^sqlite",names(db_tabs))]
-
-#preview_table(db_tabs$MEASUREMENT)
-#lapply(db_tabs, preview_table)
 
 #Key tables.
 #For now, always inner_join all tables with at least one table depending on it.
@@ -106,10 +99,11 @@ opt_db_field_select     <- getFields(db_tabs,mask = "none")
 opt_db_field_select_def <- c("person|person_id","person|gender_source_value","person|hla_source_value","sequencing|file_local_source","sequencing|file_remote_source_url")
 opt_db_filt_select      <- opt_db_field_select
 opt_db_filt_select_def  <- "person|hla_source_value"
-opt_db_manual_def       <- 'SELECT person_source_value, person.person_id, file_local_source,file_type_source_value,file_remote_source_url
-FROM person INNER JOIN sequencing 
-WHERE file_type_source_value = "Counts"
-ORDER BY person_source_value'
+opt_db_manual_def       <- 
+'SELECT person_source_value, person.person_id,file_remote_repo_id,file_remote_repo_value
+ FROM person INNER JOIN sequencing 
+ WHERE file_remote_repo_id IS NOT NULL and person_source_value is "tcga-3c-aaau" and file_remote_repo_value is "tumor sample barcode"
+ ORDER BY "file_remote_repo_value"'
 
-# source(file.path(dirs$base,"scrap.R"))
+#source(file.path(dirs$app,"scrap.R"))
 

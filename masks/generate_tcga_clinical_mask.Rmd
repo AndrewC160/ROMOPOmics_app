@@ -22,7 +22,6 @@ mask_dir  <- file.path(base_dir,"masks")
 data_dir  <- file.path(base_dir,"data")
 clin_file <- file.path(data_dir,"brca_clinical/brca_clinical.csv")
 muts_file <- file.path(data_dir,"brca_mutation/brca_mutation.csv")
-message(base_dir)
 ```
 
 #The Cancer Genome Atlas ([TCGA](https://www.cancer.gov/about-nci/organization/ccg/research/structural-genomics/tcga))

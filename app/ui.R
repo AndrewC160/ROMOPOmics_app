@@ -5,24 +5,12 @@ shinyUI(fluidPage(
       sidebarLayout(
         sidebarPanel(
           verbatimTextOutput("db_blurb"),
-          #selectInput(inputId="db_mask",label = "Apply mask",multiple = FALSE,
-          #            choices = opt_db_mask_select,selected = opt_db_mask_select_def),
-          #selectInput(inputId="db_field_select",label = "Include columns",multiple = TRUE,
-          #            choices = opt_db_field_select,selected = opt_db_field_select_def),
-          #selectInput(inputId="db_filt_select",label = "Filter columns:",multiple = TRUE,
-          #            choices = opt_db_filt_select, selected = opt_db_filt_select_def),
-          #h2("Filter values"),
-          #div(id="nextFilterUI"),
-          #addFilterUI("flt.character.hla_values"),
-          #addFilterUI("flt.integer.specimen_id")
           h2("Query"),
           textAreaInput(inputId="db_manual_query",label="",resize = "vertical",value = opt_db_manual_def)
           #actionButton(inputId="db_submit_manual_query",label="Submit")
         ),
         mainPanel(
-          dataTableOutput("db_preview"),
-          #br(),
-          #dataTableOutput("flt_tbl")
+          dataTableOutput("db_preview")
         )
       )
     ),

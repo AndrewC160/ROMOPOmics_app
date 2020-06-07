@@ -5,57 +5,10 @@ shinyServer(function(input, output, session=session) {
   query_table   <- reactive({
     dbGetQuery(conn = db,statement = input$db_manual_query)
   })
-  filter_table  <- reactive({
-    filterTable(filter_cols=input$db_filt_select,
-                                        data_model = dm,
-                                        db_tables = db_tabs)
-  })
-  
-  #####################
-  #    Observations   #
-  #####################
-  observeEvent(input$db_filt_select,{
-    #Get rid of obsolete filters.
-    obsoleteFilters(input_list = input,flt_tbl = filter_table()) %>%
-      lapply(function(x) 
-        removeUI(session = session,
-                 selector = paste0("#",x),
-                 multiple = TRUE,immediate = FALSE))
-  })
-  observeEvent(input$db_filt_select,{
-    #Add missing filters UI groups.
-    missingFilters(input_list = input,flt_tbl=filter_table()) %>%
-      lapply(function(x)
-        insertUI(
-          selector='#nextFilterUI',where = "beforeBegin",
-          ui = addFilterUI(flt_name=x),
-          multiple = TRUE,immediate = FALSE,session = session))
-  })
-  observeEvent(input$db_mask,{
-    new_choices <- getFields(db_tabs,mask = input$db_mask)
-    #Update field selection.
-    sels        <- input$db_field_select
-    updateSelectInput(session = session,
-                      inputId = "db_field_select",
-                      choices=new_choices,
-                      selected = intersect(sels,new_choices))
-    #Update filter selection.
-    sels        <- input$db_filt_select
-    updateSelectInput(session = session,
-                      inputId = "db_filt_select",
-                      choices=new_choices,
-                      selected = intersect(sels,new_choices))
-  })
   
   #####################
   #     Outputs       #
   #####################
-  output$db_preview   <- renderDataTable({
-    as_tibble(query_table())
-  })
-  output$flt_tbl      <- renderDataTable({
-    filter_table()
-  })
   output$db_blurb     <- renderText({
     paste0("Database file saved to '",basename(dirs$db_file),"'\n",
            "Based on ",length(msks)," input masks, ",length(unique(unlist(db_tabs)))," total fields\n",
@@ -63,7 +16,8 @@ shinyServer(function(input, output, session=session) {
            paste(names(db_tabs),collapse="\n\t"))
   })
   output$db_preview   <- renderDataTable(options=list(pageLength=100),{
-    as_tibble(query_table())
+    tb <- as_tibble(query_table())
+    tb
   })
   output$mask_table   <- renderDataTable(options=list(pageLength=100),{
     msk_sel <- input$mask_select
