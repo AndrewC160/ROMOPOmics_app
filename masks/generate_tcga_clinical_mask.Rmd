@@ -1,0 +1,105 @@
+---
+title: "TCGA clinical and mutation masks"
+author: "Andrew"
+date: "5/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(magrittr)
+library(here)
+library(data.table)
+library(ROMOPOmics)
+library(knitr)
+library(kableExtra)
+library(scales)
+library(lubridate)
+knitr::opts_chunk$set(echo = FALSE)
+#base_dir  <- file.path(here(),"src/R/shiny/ROMOPOmics_demo")
+base_dir  <- file.path(here())
+mask_dir  <- file.path(base_dir,"masks")
+data_dir  <- file.path(base_dir,"data")
+clin_file <- file.path(data_dir,"brca_clinical/brca_clinical.csv")
+muts_file <- file.path(data_dir,"brca_mutation/brca_mutation.csv")
+message(base_dir)
+```
+
+#The Cancer Genome Atlas ([TCGA](https://www.cancer.gov/about-nci/organization/ccg/research/structural-genomics/tcga))
+##Clinical data mask.
+```{r loadDataTable}
+tib   <- fread(clin_file,header = FALSE) %>%
+          as_tibble() %>%
+          mutate_all(function(x) ifelse(x=="",NA,x))
+```
+
+> File name: `r clin_file`
+
+This data table includes **`r prettyNum(ncol(tib) - 1,big.mark=",")` samples** and **`r prettyNum(nrow(tib) - 1,big.mark=",")` metrics**. For the sake of this demo, we assume that the user only wants to use a subset of data included in the TCGA data set. To build the basic mask, output the "alias" table along with empty columns for "field", "table", "field_index", and "set value". Also include an example column in order to clarify the various field contents.
+```{r parseTable}
+tib %>% 
+  mutate(field="",table="",field_idx="",set_value="") %>%
+  rename(alias=V1,example1=V2) %>%
+  select(-starts_with("V")) #%>%
+  #write.table(file = file.path(base_dir,"brca_clinical_mask_blank.tsv"),sep = "\t",row.names = FALSE,col.names=TRUE,quote = FALSE)
+```
+
+Next, manually add values to these columns.
+
+  - **field**: the OMOP field name that this alias is mapped to.
+
+  - **table**: the OMOP table name that this alias is mapped to.
+
+  - **field_index**: If multiple instances of this field are to be used, specify a value (does not need to be numeric) in the **field_index** column. For instance, if two `dates_of_treatment` are to be specified, assign them values of "1" and "2" or "A" and "B". Assigning other values associated with this field the same index ensures they will be grouped together in the same column.
+
+  - **set_value**: If a default value should be assigned here regardless of input from the data set, specify that value here. This is useful for "unit" values, for instance.
+
+###Example:
+
+The fields `number_of_lymphnode_positive_by_he` and `number_of_lymphnode_positive_by_he` are to be used. Each is to be assigned to `MEASUREMENT|value_as_number`, and in OMOP format this entails splitting the entry into multiple columns, one for each measurement. To specify units and meaning, the following fields are added to the mask:
+```{r exampleTable,echo=FALSE}
+tibble(alias=c("number_of_lymphnode_positive_by_he_desc",
+               "number_of_lymphnode_positive_by_he",
+               "number_of_lymphnode_positive_by_he_unit",
+               "number_of_lymphnode_positive_by_ihc_desc",
+               "number_of_lymphnode_positive_by_ihc",
+               "number_of_lymphnode_positive_by_ihc_unit"),
+       field=c("measurement_source_value",
+               "value_as_number",
+               "unit_source_value",
+               "measurement_source_value",
+               "value_as_number",
+               "unit_source_value"),
+       table=rep("MEASUREMENT",6),
+       field_index = c(1,1,1,2,2,2),
+       set_value = c("Number of lymphnodes positive by HE","","nodes",
+                     "Number of lymphnodes positive by IHC","","nodes")) %>%
+  kable() %>% kable_styling(full_width = FALSE)
+```
+
+###Final clinical mask:
+```{r showClinicalMask}
+fread(file.path(mask_dir,"brca_clinical_mask.tsv"),header = TRUE) %>%
+  as_tibble() %>%
+  select(-starts_with("V")) %>%
+  kable() %>%
+  kable_styling(full_width=FALSE)
+```
+
+##Clinical data mask.
+```{r loadDataTable}
+tib   <- fread(muts_file,header = FALSE) %>%
+          as_tibble() %>%
+          mutate_all(function(x) ifelse(x=="",NA,x))
+```
+
+> File name: `r muts_file`
+
+This data table includes **`r prettyNum(ncol(tib) - 1,big.mark=",")` samples** and **`r prettyNum(nrow(tib) - 1,big.mark=",")` metrics**.
+```{r parseTable}
+tib %>% 
+  mutate(field="",table="",field_idx="",set_value="") %>%
+  rename(alias=V1,example1=V2) %>%
+  select(-starts_with("V")) #%>%
+  #write.table(file = file.path(base_dir,"brca_mutation_mask_blank.tsv"),sep = "\t",row.names = FALSE,col.names=TRUE,quote = FALSE)
+```
