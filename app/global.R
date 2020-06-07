@@ -13,7 +13,7 @@ library(sna)
 library(data.table)
 
 dirs          <- list()
-dirs$base     <- file.path("/projects/andrew/ROMOPOmics_app")
+dirs$base     <- file.path(here())
 dirs$app      <- file.path(dirs$base,"app")
 dirs$src      <- file.path(dirs$base,"src")
 dirs$data     <- file.path(dirs$base,"data")
